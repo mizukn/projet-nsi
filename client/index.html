@@ -436,12 +436,12 @@ function drawNode(node) {
 ctx.save();
 ctx.strokeStyle = "black";
 ctx.lineWidth = 5;
-const borderOffset = 20000 * 0.01 / 2; // 700
+const borderOffset = 10000 * 0.01 / 2; // 700
 ctx.strokeRect(
     -borderOffset,
     -borderOffset,
-    20000 + borderOffset * 2,
-    20000 + borderOffset * 2
+    10000 + borderOffset * 2,
+    10000 + borderOffset * 2
 );
 ctx.restore();
 
@@ -475,7 +475,7 @@ ctx.textBaseline = "top";
 ctx.textAlign = "center";
 
 ctx.font = "24px Arial";
-ctx.fillText("Leaderboard", width - w/2 - p, p + 8);
+ctx.fillText("Classement", width - w/2 - p, p + 8);
 
 ctx.font = "17px Arial";
 for(var i = 0; i < leaders.length; i++)  {

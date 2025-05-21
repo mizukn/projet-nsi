@@ -360,11 +360,11 @@ class GameServer {
     playerMinMassForEject: 20,
     playerMaxMass: 20000,
     playerMaxSplit: 16,
-    rangeWidth: 7000 ,
-    rangeHeight: 7000 ,
+    rangeWidth: 10000 ,
+    rangeHeight: 10000 ,
     baseTime: 60000,
-    width: 20000,
-    height: 20000,
+    width: 10000,
+    height: 10000,
   };
   lastUpdateTime: number = Date.now();
 
@@ -618,8 +618,8 @@ setInterval(() => {
   }
 }, 2000);
 
-server.addFood(1000);
-server.addVirus(30);
+server.addFood(300);
+server.addVirus(15);
 
 const sockets: { [id: string]: Socket } = {};
 
