@@ -712,7 +712,7 @@ setInterval(() => {
     const now = Date.now();
     for (const player of server.players.slice()) {
         if ((player as any).lastHeartbeat && now - (player as any).lastHeartbeat > 10000) {
-            // 10 secondes sans heartbeat
+            // 10 secondes sans heartbeat = déconnexion du neuille
             const socket = sockets[player.id];
             if (socket) {
                 socket.disconnect(true);
