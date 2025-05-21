@@ -598,21 +598,20 @@ class CollisionHandler {
   }
 }
 
-// --- Server instance and sockets ---
 const server = new GameServer();
+const sockets: { [id: string]: Socket } = {};
+const players = new Map<string, Player>();
 
+// Clean inactive players
 setInterval(() => {
   const now = Date.now();
-  for (const player of server.players.slice()) {
-    console.log(player.lastHeartbeat);
-    if ((player as any).lastHeartbeat && now - (player as any).lastHeartbeat > 10000) { // 10 secondes sans heartbeat
-      const socket = sockets[player.id];
-      if (socket) {
-        socket.disconnect(true);
-      }
+  for (const [id, player] of players.entries()) {
+    if (player.lastHeartbeat && now - player.lastHeartbeat > 10000) {
+      const socket = sockets[id];
+      if (socket) socket.disconnect(true);
       server.removePlayer(player);
-      delete sockets[player.id];
-      // Optionnel : broadcast message
+      players.delete(id);
+      delete sockets[id];
       io.sockets.emit("msg", ["server", "", `${escapeHtml(player.getNick())} a été déconnecté pour inactivité.`]);
     }
   }
@@ -620,8 +619,6 @@ setInterval(() => {
 
 server.addFood(150);
 server.addVirus(10);
-
-const sockets: { [id: string]: Socket } = {};
 
 function escapeHtml(unsafe: string) {
   return unsafe
@@ -636,57 +633,41 @@ io.on("connection", (socket) => {
   sockets[socket.id] = socket;
 
   const player = new Player(server);
-  player.joined = false;
   player.id = socket.id;
+  player.joined = false;
+  players.set(socket.id, player);
   server.players.push(player);
-  let joined = false;
 
   console.log("New connection: " + socket.id);
 
-    socket.on("heartbeat", () => {
+  socket.on("heartbeat", () => {
     player.lastHeartbeat = Date.now();
   });
-
-
-
-
-
-
-
-
-  
 
   socket.on("join game", (d: [string, string, string]) => {
     if (player.joined) return;
 
-
-
-    const servKey = d[0];
-    const nick = d[1];
+    const [servKey, nick] = d;
 
     player.setNick(nick);
     player.joined = true;
-    socket.emit("joined");
+    socket.compress(true).emit("joined");
 
-socket.on("msg", (m: string) => {
-  // Check for -setmass command
-  if (typeof m === "string" && m.startsWith("-setmass ")) {
-    const parts = m.split(" ");
-    const newMass = parseFloat(parts[1]);
-    if (!isNaN(newMass) && newMass > 0) {
-      // Set mass for all player's blobs
-      for (const blob of player.blobs) {
-        blob.mass = newMass;
+    socket.on("msg", (m: string) => {
+      if (typeof m === "string" && m.startsWith("-setmass ")) {
+        const parts = m.split(" ");
+        const newMass = parseFloat(parts[1]);
+        if (!isNaN(newMass) && newMass > 0) {
+          for (const blob of player.blobs) blob.mass = newMass;
+          socket.compress(true).emit("msg", ["server", "", `Your mass was set to ${newMass}`]);
+          return;
+        }
       }
-      // Optionally, send a confirmation message only to the player
-      socket.emit("msg", ["server", "", `Your mass was set to ${newMass}`]);
-      return;
-    }
-  }
-  // Normal chat message
-  const d = ["client", escapeHtml(player.getNick()), escapeHtml(m)];
-  io.sockets.emit("msg", d);
-});
+
+      const d = ["client", escapeHtml(player.getNick()), escapeHtml(m)];
+      io.sockets.emit("msg", d);
+    });
+
     server.createPlayerBlob(
       Math.random() * server.config.width,
       Math.random() * server.config.height,
@@ -694,104 +675,98 @@ socket.on("msg", (m: string) => {
       0, null, player
     );
 
-    const m = ["game", "", `${escapeHtml(player.getNick())} joined the game.`];
-    socket.broadcast.emit("msg", m);
+    socket.broadcast.emit("msg", ["game", "", `${escapeHtml(player.getNick())} joined the game.`]);
 
-    const init: any[] = [];
-    player.visibleNodes.forEach(b => {
-      init.push([
-        b.sendId,
-        Math.round(b.x),
-        Math.round(b.y),
-        b.nick,
-        Math.round(Math.sqrt(b.mass) * 10),
-        Math.round(b.hue),
-        b.isAgitated,
-        b.nodeType
-      ]);
-    });
-    socket.emit("init blobs", init);
+    const init = player.visibleNodes.map(b => [
+      b.sendId,
+      Math.round(b.x),
+      Math.round(b.y),
+      b.nick,
+      Math.round(Math.sqrt(b.mass) * 10),
+      Math.round(b.hue),
+      b.isAgitated,
+      b.nodeType
+    ]);
+    socket.compress(true).emit("init blobs", init);
 
     console.log("connected");
-    console.log("players: " + server.players.length);
+    console.log("players: " + players.size);
   });
 
   socket.on("disconnect", () => {
-    const d = ["game", "", `${escapeHtml(player.getNick())} left the game.`];
-    socket.broadcast.emit("msg", d);
-
+    socket.broadcast.emit("msg", ["game", "", `${escapeHtml(player.getNick())} left the game.`]);
     delete sockets[socket.id];
-    player.server.removePlayer(player);
+    players.delete(socket.id);
+    server.removePlayer(player);
   });
 
-  socket.on("width and height", (d: [number, number]) => {
-    player.screenWidth = d[0];
-    player.screenHeight = d[1];
+  socket.on("width and height", ([w, h]) => {
+    player.screenWidth = w;
+    player.screenHeight = h;
   });
-  socket.on("input mouse", (data: [number, number]) => {
-    player.onMouseMove(data[0], data[1]);
-  });
-  socket.on("input keyup", (data: number) => {
-    player.onKeyUp(data);
-  });
-  socket.on("input keydown", (data: number) => {
-    player.onKeyDown(data);
-  });
+
+  socket.on("input mouse", ([x, y]) => player.onMouseMove(x, y));
+  socket.on("input keyup", (key) => player.onKeyUp(key));
+  socket.on("input keydown", (key) => player.onKeyDown(key));
 });
 
-// --- Game loop ---
+// Update leaders every 500ms instead of every tick
+let lastLeaderUpdate = 0;
+
 setInterval(() => {
   server.update();
 
-  for (const key in sockets) {
-    const socket = sockets[key];
-    const player = server.players.find(a => a.id === socket.id);
+  const now = Date.now();
+  const updateLeaders = now - lastLeaderUpdate > 500;
+  if (updateLeaders) lastLeaderUpdate = now;
+
+  for (const id in sockets) {
+    const socket = sockets[id];
+    const player = players.get(id);
     if (!player) continue;
 
-    const add: any[] = [];
-    player.addedVisibleNodes.forEach(b => {
-      add.push([
-        b.sendId,
-        Math.round(b.x),
-        Math.round(b.y),
-        b.nick,
-        Math.round(Math.sqrt(b.mass) * 10),
-        Math.round(b.hue),
-        b.isAgitated,
-        b.nodeType
-      ]);
-    });
-    socket.emit("add blobs", add);
+    const add = player.addedVisibleNodes.map(b => [
+      b.sendId,
+      Math.round(b.x),
+      Math.round(b.y),
+      b.nick,
+      Math.round(Math.sqrt(b.mass) * 10),
+      Math.round(b.hue),
+      b.isAgitated,
+      b.nodeType
+    ]);
+    socket.compress(true).emit("add blobs", add);
     player.addedVisibleNodes = [];
 
-    const remove: any[] = [];
-    player.removedVisibleNodes.forEach(b => {
-      remove.push(b.sendId);
-    });
-    socket.emit("remove blobs", remove);
+    const remove = player.removedVisibleNodes.map(b => b.sendId);
+    socket.compress(true).emit("remove blobs", remove);
     player.removedVisibleNodes = [];
 
-    const move: any[] = [];
-    player.movingVisibleNodes.forEach(b => {
-      move.push([
-        b.sendId,
-        Math.round(b.x),
-        Math.round(b.y),
-        Math.round(Math.sqrt(b.mass) * 10)
-      ]);
-    });
-    socket.emit("move blobs", move);
-    socket.emit("leaders", server.getLeaders());
+    const move = player.movingVisibleNodes.map(b => [
+      b.sendId,
+      Math.round(b.x),
+      Math.round(b.y),
+      Math.round(Math.sqrt(b.mass) * 10)
+    ]);
+    socket.compress(true).emit("move blobs", move);
+    player.movingVisibleNodes = [];
 
-    if (player.blobs.length === 0 && player.joined === true) {
-      socket.emit("dead");
-      (socket as any).joined = false;
+    if (updateLeaders) {
+      socket.compress(true).emit("leaders", server.getLeaders());
+    }
+
+    if (player.blobs.length === 0 && player.joined) {
+      socket.compress(true).emit("dead");
+      player.joined = false;
       continue;
     }
 
     const translateX = player.centerX * player.drawZoom - player.screenWidth / 2;
     const translateY = player.centerY * player.drawZoom - player.screenHeight / 2;
-    const d = [Math.round(translateX), Math.round(translateY), player.drawZoom];
-    socket.emit("center and zoom", d);
+    socket.compress(true).emit("center and zoom", [
+      Math.round(translateX),
+      Math.round(translateY),
+      player.drawZoom
+    ]);
   }
-}, 1000 / 25); // 50 FPS
+}, 1000 / 25); // 40ms (25 FPS)
