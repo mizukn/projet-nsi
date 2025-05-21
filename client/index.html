@@ -1,501 +1,480 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Neuille.io</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link rel="stylesheet" type="text/css" href="style.css">
-</head>
-<body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="mobileUI">
-        <div id="split">
+    <head>
+        <title>Neuille.io</title>
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" type="text/css" href="style.css" />
+    </head>
+    <body>
+        <canvas id="gameCanvas"></canvas>
+        <div id="mobileUI">
+            <div id="split"></div>
+            <div id="eject"></div>
         </div>
-        <div id="eject">
+        <div id="chatArea">
+            <ul id="chatBox">
+                <li class="game">Bienvenue dans Neuille.IO!</li>
+            </ul>
+            <input type="text" id="msgInput" />
         </div>
-    </div>
-    <div id="chatArea">
-        <ul id="chatBox">
-            <li class="game">Welcome to Neuille.IO!</li> 
-        </ul>
-        <input type="text" id="msgInput">
-    </div>
-    <div id="overlay">
-        <div id="mainContainer">
-            <div class="container">
-                <h2>Publicité</h2>
-                <img src="https://www.lineaires.com/var/site/storage/images/_aliases/large/7/1/0/9/6979017-1-fre-FR/Chronodrive%20x%20Franck%20Leboeuf.png" alt="Ad" width="100%">
-            </div>
-            <div class="container" id="main">
-                <h2>Neuille.io</h2>
-                <p>Bienvenue au jeu ultime des neuilles</p>
-                <input type="text" id="nickInput" placeholder="Ton pseudo" maxlength="14">
-                <div id="buttons">
-                    <button id="playButton">Jouer</button>
-                    <button id="settingsButton">Paramètres</button>
+        <div id="overlay">
+            <div id="mainContainer">
+                <div class="container">
+                    <h2>Publicité</h2>
+                    <img
+                        src="https://www.lineaires.com/var/site/storage/images/_aliases/large/7/1/0/9/6979017-1-fre-FR/Chronodrive%20x%20Franck%20Leboeuf.png"
+                        alt="Ad"
+                        width="100%" />
                 </div>
-                <div id="settings">
-                    <select id="gamemodes">
-                        <option value="ffa">FFA</option>
-                    </select>
-                    <input type="checkbox" name="chatbox" class="test">Show chatbox
-                    <input type="checkbox" name="mass" class="test">Show mass
+                <div class="container" id="main">
+                    <h2>Neuille.io</h2>
+                    <p>Bienvenue au jeu ultime des neuilles</p>
+                    <input type="text" id="nickInput" placeholder="Ton pseudo" maxlength="14" />
+                    <div id="buttons">
+                        <button id="playButton">Jouer</button>
+                        <button id="settingsButton">Paramètres</button>
+                    </div>
+                    <div id="settings">
+                        <select id="gamemodes">
+                            <option value="ffa">FFA</option>
+                        </select>
+                        <input type="checkbox" name="chatbox" class="test" />Afficher le chat
+                        <input type="checkbox" name="mass" class="test" />Afficher la masse
+                    </div>
+                    <center>
+                        <h2>TUTO:</h2>
+                        <p>ESPACE pour se diviser<br />W pour cracher</p>
+                    </center>
                 </div>
-                <center>
-                    <h2>TUTO:</h2>
-                    <p>ESPACE pour se diviser<br>W pour cracher</p>
-                </center>
             </div>
-
         </div>
-    </div>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="skins.js"></script>
-    <script>
-        var socket = io();
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="skins.js"></script>
+        <script>
+            var socket = io();
 
-        setInterval(function() {
-    socket.emit("heartbeat");
-}, 2000); // toutes les 2 secondes
+            setInterval(function () {
+                socket.emit("heartbeat");
+            }, 2000); // toutes les 2 secondes
 
-        var settingsButton = document.getElementById("settingsButton");
-        var settingsOff = true;
-        var settingsDiv = document.getElementById("settings");
-        settingsButton.onclick = function() {
-            if(settingsOff) {
-                settingsOff = false;
-                settingsDiv.style.display = "block";
-            } else {
-                settingsOff = true;
-                settingsDiv.style.display = "none";
-            }
-        };
+            var settingsButton = document.getElementById("settingsButton");
+            var settingsOff = true;
+            var settingsDiv = document.getElementById("settings");
+            settingsButton.onclick = function () {
+                if (settingsOff) {
+                    settingsOff = false;
+                    settingsDiv.style.display = "block";
+                } else {
+                    settingsOff = true;
+                    settingsDiv.style.display = "none";
+                }
+            };
 
-        var settings = {
-            skin: false,
-            name: false,
-            chatbox: false
-        };
-        function initSettings() {
-            var boxes = document.querySelectorAll("input[type='checkbox']");
-            boxes.forEach(function(box) {
-                var value = box.checked;
-                settings[box.name] = value;
-            });
+            var settings = {
+                skin: false,
+                name: false,
+                chatbox: false,
+            };
+            function initSettings() {
+                var boxes = document.querySelectorAll("input[type='checkbox']");
+                boxes.forEach(function (box) {
+                    var value = box.checked;
+                    settings[box.name] = value;
+                });
 
-            if(settings.chatbox) {
-                chatArea.style.display = "block";
-            } else {
-                chatArea.style.display = "none";
-            }
-        };
-
-        var playButton = document.getElementById("playButton");
-        var nickInput = document.getElementById("nickInput");
-        var chatArea = document.getElementById("chatArea");
-        var hasPlayed = false;
-
-        var menuHidden = true;
-
-        var overlay = document.getElementById("overlay");
-        var gamemodes = document.getElementById("gamemodes");
-        playButton.onclick = function() {
-            
-            initSettings();
-            menuHidden = true;
-
-            var selectedMode = gamemodes.options[gamemodes.selectedIndex].value;
-
-            var d = [ selectedMode, nickInput.value, window.location.hostname ];
-            overlay.style.display = "none";
-            socket.emit("join game", d);
-        };
-
-        var canvas = document.getElementById("gameCanvas");
-
-        var width = innerWidth;
-        var height = innerHeight;
-        canvas.height = height;
-        canvas.width = width;
-        function resizeCanvas() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-    // Optionally, tell the server about the new size:
-    socket.emit("width and height", [width, height]);
-}
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
-
-        var ctx = canvas.getContext("2d");
-        ctx.imageSmoothingQuality = "high";
-
-        var data = [ width, height ];
-        socket.emit("width and height", data);
-
-        var chatBox = document.getElementById("chatBox");
-        var msgInput = document.getElementById("msgInput");
-        msgInput.onkeydown = function(e) {
-            var key = e.keyCode;
-            var msg = this.value.trim();
-            if(key == 13 && msg != "" && settings.chatbox) {
-                socket.emit("msg", msg);
-                this.value = "";
-            }
-        };
-
-        socket.on("msg", function(arr) {
-            chatBox.innerHTML += `
-            <li class="${ arr[0] }">
-                <span class="nick">${ arr[1] }</span> ${ arr[2] }
-            </li>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
-
-        var pressed = false;
-        var joined = false;
-
-        function toggleMenu() {
-            if(!joined) {
-                return;
+                if (settings.chatbox) {
+                    chatArea.style.display = "block";
+                } else {
+                    chatArea.style.display = "none";
+                }
             }
 
-            initSettings();
-            if(menuHidden) {
-                menuHidden = false;
-                overlay.style.display = "block";
-            } else {
+            var playButton = document.getElementById("playButton");
+            var nickInput = document.getElementById("nickInput");
+            var chatArea = document.getElementById("chatArea");
+            var hasPlayed = false;
+
+            var menuHidden = true;
+
+            var overlay = document.getElementById("overlay");
+            var gamemodes = document.getElementById("gamemodes");
+            playButton.onclick = function () {
+                initSettings();
                 menuHidden = true;
+
+                var selectedMode = gamemodes.options[gamemodes.selectedIndex].value;
+
+                var d = [selectedMode, nickInput.value, window.location.hostname];
                 overlay.style.display = "none";
-            }
-        };
-        window.addEventListener("keydown", function(e) {
-            var key = e.keyCode;
+                socket.emit("join game", d);
+            };
 
-            var target = e.target;
-            if(target == msgInput) {
-                if(key == 13) {
-                    msgInput.blur();
+            var canvas = document.getElementById("gameCanvas");
+
+            var width = innerWidth;
+            var height = innerHeight;
+            canvas.height = height;
+            canvas.width = width;
+            function resizeCanvas() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                // Optionally, tell the server about the new size:
+                socket.emit("width and height", [width, height]);
+            }
+            resizeCanvas();
+            window.addEventListener("resize", resizeCanvas);
+
+            var ctx = canvas.getContext("2d");
+            ctx.imageSmoothingQuality = "high";
+
+            var data = [width, height];
+            socket.emit("width and height", data);
+
+            var chatBox = document.getElementById("chatBox");
+            var msgInput = document.getElementById("msgInput");
+            msgInput.onkeydown = function (e) {
+                var key = e.keyCode;
+                var msg = this.value.trim();
+                if (key == 13 && msg != "" && settings.chatbox) {
+                    socket.emit("msg", msg);
+                    this.value = "";
                 }
-                return;
-            }
-            if(key == 13) {
-                msgInput.focus();
-                return;
-            }
-
-            if(key == 27) {
-                toggleMenu();
-            }
-
-            if(!pressed) {
-                pressed = true;
-            } else {
-                return;
-            }
-
-            socket.emit("input keydown", key);
-        });
-        window.addEventListener("keyup", function(e) {
-            var key = e.keyCode;
-            pressed = false;
-            socket.emit("input keyup", key);
-        });
-
-        canvas.addEventListener("mousemove", function(e) {
-            var data = [ e.clientX, e.clientY ];
-            socket.emit("input mouse", data);
-        });
-
-function drawNode(node) {
-    var r = node.size;
-
-    ctx.save();
-    ctx.translate(node.x, node.y);
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.closePath();
-
-    if(node.isAgitated) {
-        var n = 100;
-        ctx.beginPath();
-        for(var i = 0; i < n; i++) {
-            var e = r * 0.03;
-            var extra = i % 2 == 0 ? e : -e;
-            var a = i / n * Math.PI * 2;
-            ctx.lineTo(
-                Math.cos(a) * (r + extra), 
-                Math.sin(a) * (r + extra)
-            );
-        };
-        ctx.closePath();
-    }
-
-    // --- Bord foncé ---
-    ctx.lineWidth = Math.max(6, r * 0.13); // épaisseur du contour
-    ctx.strokeStyle = `hsl(${node.hue}, 100%, 40%)`; // même couleur, plus sombre
-    ctx.stroke();
-
-    // --- Remplissage cellule ---
-    ctx.fillStyle = `hsl(${ node.hue }, 100%, 50%)`;
-    ctx.fill();
-
-    ctx.restore();
-
-
-    ctx.save();
-    ctx.translate(node.x, node.y);
-
-    ctx.fillStyle = "white";
-    ctx.textBaseline = "middle";
-    ctx.textAlign = "center";
-
-    var size = node.size;
-    var fontsize = size * 0.43;
-    do {
-        fontsize--;
-        ctx.font = fontsize + "px Arial";
-    } while(ctx.measureText(node.nick).width > size * 1.86)
-
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = size * 0.04;
-    ctx.strokeText(node.nick, 0, 0);
-    ctx.fillText(node.nick, 0, 0);
-
-    if(settings.mass && node.nodeType == 0) {
-        ctx.font = fontsize * 0.6 + "px Arial";
-        ctx.lineWidth = size * 0.023;
-        ctx.strokeText(
-            Math.floor(node.size * node.size / 100), 
-            0, fontsize);
-        ctx.fillText(
-            Math.floor(node.size * node.size / 100), 
-            0, fontsize);
-    }
-
-    ctx.restore();
-};
-
-
-        function addBlob(arr) {
-            var blob = {
-                sendId: arr[0],
-                x: arr[1],
-                y: arr[2],
-                nick: arr[3],
-                size: arr[4],
-                hue: arr[5],
-                isAgitated: arr[6],
-                nodeType: arr[7],
-
-                newX: arr[1],
-                newY: arr[2],
-                newSize: arr[4]
             };
-            blobs.push(blob);
-        };
 
+            socket.on("msg", function (arr) {
+                chatBox.innerHTML += `
+            <li class="${arr[0]}">
+                <span class="nick">${arr[1]}</span> ${arr[2]}
+            </li>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
 
-        var blobs = [];
-        socket.on("init blobs", function(data) {
-            blobs = [];
-            data.forEach(function(arr) {
-                addBlob(arr);
-            });
-        });
-        socket.on("add blobs", function(data) {
-            data.forEach(function(arr) {
-                addBlob(arr);
-            });
-        });
-        socket.on("remove blobs", function(data) {
-            data.forEach(function(id) {
-                var index = blobs.findIndex(function(a) {
-                    return a.sendId == id;
-                });
-                blobs.splice(index, 1);
-            })
-        });
-        socket.on("move blobs", function(data) {
-            data.forEach(function(arr) {
-                var blob = blobs.find(function(a) {
-                    return a.sendId == arr[0];
-                });
-                if(blob) {
-                    blob.newX = arr[1];
-                    blob.newY = arr[2];
-                    blob.newSize = arr[3];
+            var pressed = false;
+            var joined = false;
+
+            function toggleMenu() {
+                if (!joined) {
+                    return;
                 }
-            })
-        });
 
-
-
-        var translateX = 0;
-        var translateY = 0;
-        var zoom = 0.2;
-
-        var newTranslateX = 0;
-        var newTranslateY = 0;
-        var newZoom = 0.2;
-
-        socket.on("center and zoom", function(arr) {
-            newTranslateX = arr[0];
-            newTranslateY = arr[1];
-            newZoom = arr[2];
-        });
-
-        
-        socket.on("dead", function() {
-            joined = false;
-            overlay.style.display = "block";
-        });
-        socket.on("joined", function() {
-            joined = true;
-            overlay.style.display = "none";
-        });
-
-
-        
-
-        var eUI = document.getElementById("eject");
-        var sUI = document.getElementById("split");
-        function mobileUI() {   
-            eUI.style.display = "block";
-            sUI.style.display = "block";
-
-            var c = document.getElementsByClassName("container");
-            for(var i = 0; i < c.length; i++) {
-                var cc = c[i];
-                cc.style.display = "none";
-            };
-
-            document.getElementById("main").style.display = "block";
-            document.getElementById("mainContainer").style.width = "300px";
-            document.getElementById("mainContainer").style.margin = "10px auto";
-
-            eUI.onclick = function() {
-                var w = 87;
-                socket.emit("input keydown", w);
-            };
-            sUI.onclick = function() {
-                var space = 32;
-                socket.emit("input keydown", space);
-            };
-        };
-
-        if(width < 800) {
-            mobileUI();
-        }
-
-
-
-        
-
-        var leaders = [];
-        socket.on("leaders", function(data) {
-            leaders = data;
-        });
-
-        function gridPattern() {
-            var c = document.createElement("canvas");
-            c.width = 50;
-            c.height = 50;
-            c.ctx = c.getContext("2d");
-            c.ctx.fillStyle = "#000";
-            c.ctx.globalAlpha = 0.1;
-            c.ctx.fillRect(0, c.width/2, c.width, 10);
-            c.ctx.fillRect(c.width/2, 0, 5, c.width);
-            return ctx.createPattern(c, "repeat");
-        }; 
-
-        function lerp(start, end) {
-            if(Math.hypot(start - end) < 0) {
-                return end;
-            } else {
-                return start + (end - start) * 0.2;
+                initSettings();
+                if (menuHidden) {
+                    menuHidden = false;
+                    overlay.style.display = "block";
+                } else {
+                    menuHidden = true;
+                    overlay.style.display = "none";
+                }
             }
-        };
+            window.addEventListener("keydown", function (e) {
+                var key = e.keyCode;
 
-        function draw() {
-            ctx.fillStyle = "#181824";
-            ctx.fillRect(0, 0, width, height);
+                var target = e.target;
+                if (target == msgInput) {
+                    if (key == 13) {
+                        msgInput.blur();
+                    }
+                    return;
+                }
+                if (key == 13) {
+                    msgInput.focus();
+                    return;
+                }
 
-            ctx.save();
+                if (key == 27) {
+                    toggleMenu();
+                }
 
-            translateX = lerp(translateX, newTranslateX);
-            translateY = lerp(translateY, newTranslateY);
-            zoom = lerp(zoom, newZoom);
+                if (!pressed) {
+                    pressed = true;
+                } else {
+                    return;
+                }
 
-            ctx.translate(-translateX, -translateY);
-            ctx.scale(zoom, zoom); 
-
-            // dessin de la grille + bordure
-            ctx.fillStyle = gridPattern();
-            ctx.fillRect(0, 0, 50000, 50000);
-ctx.save();
-ctx.strokeStyle = "black";
-ctx.lineWidth = 5;
-const borderOffset = 10000 * 0.01 / 2; // 700
-ctx.strokeRect(
-    -borderOffset,
-    -borderOffset,
-    10000 + borderOffset * 2,
-    10000 + borderOffset * 2
-);
-ctx.restore();
-
-
-            blobs = blobs.sort(function(a, b) {
-                return a.size - b.size;
+                socket.emit("input keydown", key);
+            });
+            window.addEventListener("keyup", function (e) {
+                var key = e.keyCode;
+                pressed = false;
+                socket.emit("input keyup", key);
             });
 
-            for(var i = 0; i < blobs.length; i++) {
-                var node = blobs[i];
-                node.x = lerp(node.x, node.newX);
-                node.y = lerp(node.y, node.newY);
-                node.size = lerp(node.size, node.newSize);
-                
-                drawNode(node);
-            };
+            canvas.addEventListener("mousemove", function (e) {
+                var data = [e.clientX, e.clientY];
+                socket.emit("input mouse", data);
+            });
 
-            ctx.restore();
+            function drawNode(node) {
+                var r = node.size;
 
-var w = 160;
-var p = 10;
-var lineHeight = 22; // hauteur d'une ligne joueur
-var headerHeight = 32; // hauteur du titre
-var totalHeight = headerHeight + leaders.length * lineHeight + 16; // 16 pour un peu de marge
+                ctx.save();
+                ctx.translate(node.x, node.y);
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, Math.PI * 2);
+                ctx.closePath();
 
-ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-ctx.fillRect(width - w - p, p, w, totalHeight);
+                if (node.isAgitated) {
+                    var n = 100;
+                    ctx.beginPath();
+                    for (var i = 0; i < n; i++) {
+                        var e = r * 0.03;
+                        var extra = i % 2 == 0 ? e : -e;
+                        var a = (i / n) * Math.PI * 2;
+                        ctx.lineTo(Math.cos(a) * (r + extra), Math.sin(a) * (r + extra));
+                    }
+                    ctx.closePath();
+                }
 
-ctx.fillStyle = "white";
-ctx.textBaseline = "top";
-ctx.textAlign = "center";
+                // --- Bord foncé ---
+                ctx.lineWidth = Math.max(6, r * 0.13); // épaisseur du contour
+                ctx.strokeStyle = `hsl(${node.hue}, 100%, 40%)`; // même couleur, plus sombre
+                ctx.stroke();
 
-ctx.font = "24px Arial";
-ctx.fillText("Classement", width - w/2 - p, p + 8);
+                // --- Remplissage cellule ---
+                ctx.fillStyle = `hsl(${node.hue}, 100%, 50%)`;
+                ctx.fill();
 
-ctx.font = "17px Arial";
-for(var i = 0; i < leaders.length; i++)  {
-    var l = leaders[i];
-    ctx.fillText(
-        (i + 1) + ". " + l,
-        width - w/2 - p,
-        p + headerHeight + i * lineHeight
-    );
-}
+                ctx.restore();
 
-            ctx.fillStyle = "white";
-            ctx.textBaseline = "middle";
-            ctx.textAlign = "left";
+                ctx.save();
+                ctx.translate(node.x, node.y);
 
-            requestAnimationFrame(draw);
-        };
+                ctx.fillStyle = "white";
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "center";
 
-        draw();
-    </script>
-    
-</body>
+                var size = node.size;
+                var fontsize = size * 0.43;
+                do {
+                    fontsize--;
+                    ctx.font = fontsize + "px Arial";
+                } while (ctx.measureText(node.nick).width > size * 1.86);
+
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = size * 0.04;
+                ctx.strokeText(node.nick, 0, 0);
+                ctx.fillText(node.nick, 0, 0);
+
+                if (settings.mass && node.nodeType == 0) {
+                    ctx.font = fontsize * 0.6 + "px Arial";
+                    ctx.lineWidth = size * 0.023;
+                    ctx.strokeText(Math.floor((node.size * node.size) / 100), 0, fontsize);
+                    ctx.fillText(Math.floor((node.size * node.size) / 100), 0, fontsize);
+                }
+
+                ctx.restore();
+            }
+
+            function addBlob(arr) {
+                var blob = {
+                    sendId: arr[0],
+                    x: arr[1],
+                    y: arr[2],
+                    nick: arr[3],
+                    size: arr[4],
+                    hue: arr[5],
+                    isAgitated: arr[6],
+                    nodeType: arr[7],
+
+                    newX: arr[1],
+                    newY: arr[2],
+                    newSize: arr[4],
+                };
+                blobs.push(blob);
+            }
+
+            var blobs = [];
+            socket.on("init blobs", function (data) {
+                blobs = [];
+                data.forEach(function (arr) {
+                    addBlob(arr);
+                });
+            });
+            socket.on("add blobs", function (data) {
+                data.forEach(function (arr) {
+                    addBlob(arr);
+                });
+            });
+            socket.on("remove blobs", function (data) {
+                data.forEach(function (id) {
+                    var index = blobs.findIndex(function (a) {
+                        return a.sendId == id;
+                    });
+                    blobs.splice(index, 1);
+                });
+            });
+            socket.on("move blobs", function (data) {
+                data.forEach(function (arr) {
+                    var blob = blobs.find(function (a) {
+                        return a.sendId == arr[0];
+                    });
+                    if (blob) {
+                        blob.newX = arr[1];
+                        blob.newY = arr[2];
+                        blob.newSize = arr[3];
+                    }
+                });
+            });
+
+            var translateX = 0;
+            var translateY = 0;
+            var zoom = 0.2;
+
+            var newTranslateX = 0;
+            var newTranslateY = 0;
+            var newZoom = 0.2;
+
+            socket.on("center and zoom", function (arr) {
+                newTranslateX = arr[0];
+                newTranslateY = arr[1];
+                newZoom = arr[2];
+            });
+
+            socket.on("dead", function () {
+                joined = false;
+                overlay.style.display = "block";
+            });
+            socket.on("joined", function () {
+                joined = true;
+                overlay.style.display = "none";
+            });
+
+            var eUI = document.getElementById("eject");
+            var sUI = document.getElementById("split");
+            function mobileUI() {
+                eUI.style.display = "block";
+                sUI.style.display = "block";
+
+                var c = document.getElementsByClassName("container");
+                for (var i = 0; i < c.length; i++) {
+                    var cc = c[i];
+                    cc.style.display = "none";
+                }
+
+                document.getElementById("main").style.display = "block";
+                document.getElementById("mainContainer").style.width = "300px";
+                document.getElementById("mainContainer").style.margin = "10px auto";
+
+                eUI.onclick = function () {
+                    var w = 87;
+                    socket.emit("input keydown", w);
+                };
+                sUI.onclick = function () {
+                    var space = 32;
+                    socket.emit("input keydown", space);
+                };
+            }
+
+            if (width < 800) {
+                mobileUI();
+            }
+
+            var leaders = [];
+            socket.on("leaders", function (data) {
+                leaders = data;
+            });
+
+            function gridPattern() {
+                var c = document.createElement("canvas");
+                c.width = 50;
+                c.height = 50;
+                c.ctx = c.getContext("2d");
+                c.ctx.fillStyle = "#000";
+                c.ctx.globalAlpha = 0.1;
+                c.ctx.fillRect(0, c.width / 2, c.width, 10);
+                c.ctx.fillRect(c.width / 2, 0, 5, c.width);
+                return ctx.createPattern(c, "repeat");
+            }
+
+            function lerp(start, end) {
+                if (Math.hypot(start - end) < 0) {
+                    return end;
+                } else {
+                    return start + (end - start) * 0.2;
+                }
+            }
+
+            function draw() {
+                ctx.fillStyle = "#181824";
+                ctx.fillRect(0, 0, width, height);
+
+                ctx.save();
+
+                translateX = lerp(translateX, newTranslateX);
+                translateY = lerp(translateY, newTranslateY);
+                zoom = lerp(zoom, newZoom);
+
+                ctx.translate(-translateX, -translateY);
+                ctx.scale(zoom, zoom);
+
+                // dessin de la grille + bordure
+                ctx.fillStyle = gridPattern();
+                ctx.fillRect(0, 0, 50000, 50000);
+                ctx.save();
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = 5;
+                const borderOffset = (10000 * 0.01) / 2; // 700
+                ctx.strokeRect(
+                    -borderOffset,
+                    -borderOffset,
+                    10000 + borderOffset * 2,
+                    10000 + borderOffset * 2
+                );
+                ctx.restore();
+
+                blobs = blobs.sort(function (a, b) {
+                    return a.size - b.size;
+                });
+
+                for (var i = 0; i < blobs.length; i++) {
+                    var node = blobs[i];
+                    node.x = lerp(node.x, node.newX);
+                    node.y = lerp(node.y, node.newY);
+                    node.size = lerp(node.size, node.newSize);
+
+                    drawNode(node);
+                }
+
+                ctx.restore();
+
+                var w = 160;
+                var p = 10;
+                var lineHeight = 22; // hauteur d'une ligne joueur
+                var headerHeight = 32; // hauteur du titre
+                var totalHeight = headerHeight + leaders.length * lineHeight + 16; // 16 pour un peu de marge
+
+                ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+                ctx.fillRect(width - w - p, p, w, totalHeight);
+
+                ctx.fillStyle = "white";
+                ctx.textBaseline = "top";
+                ctx.textAlign = "center";
+
+                ctx.font = "24px Arial";
+                ctx.fillText("Classement", width - w / 2 - p, p + 8);
+
+                ctx.font = "17px Arial";
+                for (var i = 0; i < leaders.length; i++) {
+                    var l = leaders[i];
+                    ctx.fillText(
+                        i + 1 + ". " + l,
+                        width - w / 2 - p,
+                        p + headerHeight + i * lineHeight
+                    );
+                }
+
+                ctx.fillStyle = "white";
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "left";
+
+                requestAnimationFrame(draw);
+            }
+
+            draw();
+        </script>
+    </body>
 </html>

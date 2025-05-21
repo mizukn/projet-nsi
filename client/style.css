@@ -1,198 +1,203 @@
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 body {
-  padding: 0;
-  margin: 0;
-  overflow: hidden;
-  font-family: Arial;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial;
 }
 
 h2 {
-  font-size: 32px;
-  font-weight: 500;
-  text-align: center;
-  color: #ffffff;
+    font-size: 32px;
+    font-weight: 500;
+    text-align: center;
+    color: #ffffff;
 }
 
-p , input{
-  color: #d3d3d3;
+p,
+input {
+    color: #d3d3d3;
 }
 
 #overlay {
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  position:absolute;
-  background: rgba(0, 0, 0, 0.8);
-  transition: 0.1s;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    transition: 0.1s;
 }
 
 #mainContainer {
-  width: 900px;
-  margin: 100px auto;
-  display: flex;
+    width: 900px;
+    margin: 100px auto;
+    display: flex;
 }
 
 .container {
-  width: 300px;
-  background: #343a40 ;
-  border-radius: 15px;
-  padding: 5px 15px;
-  margin-left: 10px;
-  height: fit-content;
+    width: 300px;
+    background: #343a40;
+    border-radius: 15px;
+    padding: 5px 15px;
+    margin-left: 10px;
+    height: fit-content;
 }
 
 #nickInput {
-  border-radius: 5px;
-  padding: 10px 15px;
-  border: 1px solid #7a7a7a;
-  outline: 0;
-  font-size: 14px;
-  width: 100%;
-  color: #706c6c;
+    border-radius: 5px;
+    padding: 10px 15px;
+    border: 1px solid #7a7a7a;
+    outline: 0;
+    font-size: 14px;
+    width: 100%;
+    color: #706c6c;
 }
 
 #nickInput:focus {
-  border: 1px solid #7a7a7a;
+    border: 1px solid #7a7a7a;
 }
 
 #buttons {
-  display: flex;
-  width: 100%;
+    display: flex;
+    width: 100%;
 }
 
-#playButton, #settingsButton {
-  background: #3F51B5;
-  color: white;
-  border-radius: 5px;
-  padding: 10px 15px;
-  border: 0;
-  outline: 0;
-  width: 100%;
-  margin-top: 10px;
-  cursor: pointer;
+#playButton,
+#settingsButton {
+    background: #3f51b5;
+    color: white;
+    border-radius: 5px;
+    padding: 10px 15px;
+    border: 0;
+    outline: 0;
+    width: 100%;
+    margin-top: 10px;
+    cursor: pointer;
 }
 
-#playButton:active  {
-  background: #273377;
+#playButton:active {
+    background: #273377;
 }
 
-#settingsButton { 
-  background: #9C27B0;
-  margin-left: 10px;
-  width: 50%;
+#settingsButton {
+    background: #9c27b0;
+    margin-left: 10px;
+    width: 50%;
 }
 
 #settingsButton:active {
-  background: #62186f;
+    background: #62186f;
 }
 
 #settings {
-  margin: 10px 0;
-  display: none;
+    margin: 10px 0;
+    display: none;
 }
 
 #settings input {
-  margin-left: 10px;
-  margin-bottom: 10px;
+    margin-left: 10px;
+    margin-bottom: 10px;
 }
 
 #chatArea {
-  width: 260px;
-  height: 320px;
-  bottom: 0;
-  left: 0;
-  position: absolute;
-  background: rgba(255, 255, 255, 0.6);
-  display: none;
+    width: 260px;
+    height: 320px;
+    bottom: 0;
+    left: 0;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
 }
 
 #chatBox {
-  height: 280px;
-  list-style: none;
-  padding-left: 5px;
-  overflow-y: scroll;
-  margin: 0;
-  margin-left: 5px;
+    height: 280px;
+    list-style: none;
+    padding-left: 5px;
+    overflow-y: scroll;
+    margin: 0;
+    margin-left: 5px;
 }
 
-#chatBox::-webkit-scrollbar { 
-  display: none; 
+#chatBox::-webkit-scrollbar {
+    display: none;
 }
 
 #chatBox li {
-  margin: 5px;
-  padding: 2px;
+    margin: 5px;
+    padding: 2px;
+    background-color: #0d1338;
+    color: #fff;
 }
 
 #msgInput {
-  bottom: 0;
-  position: absolute;
-  width: 100%;
-  border: 0;
-  border-top: 1px solid #ddd;
-  padding: 10px;
-  outline: 0;
+    bottom: 0;
+    position: absolute;
+    width: 100%;
+    border: 0;
+    border-top: 1px solid #343a40;
+    padding: 10px;
+    outline: 0;
+    background-color: rgba(15, 15, 15, 0.45);
 }
 
 .game {
-  font-style: italic;
-  color: #673AB7;
+    font-style: italic;
+    color: #673ab7;
 }
 .game::before {
-  content: "» ";
+    content: "» ";
 }
 
 .client .nick {
-  color: #f44336;
+    color: #f44336;
 }
 
 #gamemodes {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  outline: 0;
-  margin-bottom: 10px;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    outline: 0;
+    margin-bottom: 10px;
 }
 
-#eject, #split {
-  width: 100px;
-  height: 100px;
-  position: absolute;
-  bottom: 20px;
-  display: none;
+#eject,
+#split {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    bottom: 20px;
+    display: none;
 }
 
 #eject {
-  left: 20px;
-  background: url("eject.png");
-  background-size: 100%;
+    left: 20px;
+    background: url("eject.png");
+    background-size: 100%;
 }
 
 #split {
-  right: 20px;
-  background: url("split.png");
-  background-size: 100%;
+    right: 20px;
+    background: url("split.png");
+    background-size: 100%;
 }
 
-
 input[type="checkbox"].test {
-  accent-color: #fff; /* for modern browsers: makes the checkmark white */
+    accent-color: #fff; /* for modern browsers: makes the checkmark white */
 }
 
 input[type="checkbox"].test + label,
 input[type="checkbox"].test {
-  color: #fff !important;
+    color: #fff !important;
 }
 
 input[type="nick"].test {
-  color: #fff !important;
+    color: #fff !important;
 }
 
 /* Or, if you want the text next to the checkbox to be white: */
 #settings {
-  color: #fff;
+    color: #fff;
 }
