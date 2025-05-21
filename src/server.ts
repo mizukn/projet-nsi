@@ -618,8 +618,8 @@ setInterval(() => {
   }
 }, 2000);
 
-server.addFood(300);
-server.addVirus(15);
+server.addFood(150);
+server.addVirus(10);
 
 const sockets: { [id: string]: Socket } = {};
 
