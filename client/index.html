@@ -75,9 +75,9 @@
             };
 
             var settings = {
-                name: false,
-                chatbox: false,
-                minimap: false,
+                name: true,
+                chatbox: true,
+                minimap: true,
             };
             function initSettings() {
                 var boxes = document.querySelectorAll("input[type='checkbox']");
@@ -318,11 +318,16 @@
                     newX: arr[1],
                     newY: arr[2],
                     newSize: arr[4],
+                    uuid: arr[8],
                 };
                 blobs.push(blob);
             }
 
             var blobs = [];
+            var players = 0;
+            socket.on("total players", function (data) {
+                players = data;
+            });
             socket.on("init blobs", function (data) {
                 blobs = [];
                 data.forEach(function (arr) {
@@ -609,14 +614,14 @@
                     // Players online (unique nicks with at least one cell)
                     let playerSet = new Set();
                     for (let i = 0; i < blobs.length; i++) {
-                        if (blobs[i].nodeType === 0) playerSet.add(blobs[i].nick);
+                        if (blobs[i].nodeType === 0) playerSet.add(blobs[i].uuid);
                     }
                     let playersOnline = playerSet.size;
 
                     let lines = [
                         `FPS: ${window._fps}`,
-                        `Joueurs en ligne: ${playersOnline}`,
-                        "Serveur: Europe/Paris::" + window.location.hostname,
+                        `Joueurs en ligne: ${players}`,
+                        "Serveur: Europe/Paris [0]",
                     ];
 
                     ctx.save();

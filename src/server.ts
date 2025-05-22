@@ -145,6 +145,8 @@ class GameBlob {
  * Classe pour les blobs des joueurs
  */
 class PlayerBlob extends GameBlob {
+    parent: Player | null;
+    uuid: string;
     constructor(
         server: GameServer,
         nodeId: number,
@@ -155,6 +157,8 @@ class PlayerBlob extends GameBlob {
     ) {
         super(server, nodeId, x, y, mass, parent);
         this.nodeType = 0;
+        this.parent = parent;
+        this.uuid = parent.uuid;
     }
     // Perte de masse progressive
     decayMass(delta: number) {
@@ -330,9 +334,11 @@ class Player {
     id: string = "";
     joined: boolean = false;
     lastHeartbeat: number = Date.now();
+    uuid: string = "";
 
     constructor(server: GameServer) {
         this.server = server;
+        this.uuid = Math.random().toString(36).substring(2, 15);
     }
     setNick(n: string) {
         this.nick = n;
@@ -819,6 +825,7 @@ io.on("connection", (socket) => {
             ]);
         });
         socket.compress(true).emit("init blobs", init);
+        socket.emit("total players", server.players.length);
 
         console.log("connected");
         console.log("players: " + server.players.length);
