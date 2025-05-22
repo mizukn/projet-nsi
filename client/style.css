@@ -185,7 +185,7 @@ input {
 }
 
 input[type="checkbox"].test {
-    accent-color: #fff; /* for modern browsers: makes the checkmark white */
+    accent-color: #fff; 
 }
 
 input[type="checkbox"].test + label,
@@ -197,7 +197,6 @@ input[type="nick"].test {
     color: #fff !important;
 }
 
-/* Or, if you want the text next to the checkbox to be white: */
 #settings {
     color: #fff;
 }
