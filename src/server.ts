@@ -884,7 +884,7 @@ setInterval(() => {
         socket.compress(true).emit("add blobs", add);
         player.addedVisibleNodes = [];
 
-        // Blobs à retirer
+        // Blobs du joueur à retirer
         const remove: any[] = [];
         player.removedVisibleNodes.forEach((b) => {
             remove.push(b.sendId);
