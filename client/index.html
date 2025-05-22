@@ -40,7 +40,9 @@
                         <select id="gamemodes">
                             <option value="ffa">FFA</option>
                         </select>
-                        <input type="checkbox" name="chatbox" class="test" />Afficher le chat
+                        <input type="checkbox" name="minimap" class="test" checked />Afficher la
+                        minimap <br /><input type="checkbox" name="chatbox" class="test" />Afficher
+                        le chat<br />
                         <input type="checkbox" name="mass" class="test" />Afficher la masse
                     </div>
                     <center>
@@ -57,7 +59,7 @@
 
             setInterval(function () {
                 socket.emit("heartbeat");
-            }, 2000); // toutes les 2 secondes
+            }, 2000); // toutes les 2 secondes on envoie un heartbeat
 
             var settingsButton = document.getElementById("settingsButton");
             var settingsOff = true;
@@ -73,9 +75,9 @@
             };
 
             var settings = {
-                skin: false,
                 name: false,
                 chatbox: false,
+                minimap: false,
             };
             function initSettings() {
                 var boxes = document.querySelectorAll("input[type='checkbox']");
@@ -207,6 +209,39 @@
                 var data = [e.clientX, e.clientY];
                 socket.emit("input mouse", data);
             });
+
+            // Mobile: control with finger drag
+            canvas.addEventListener(
+                "touchmove",
+                function (e) {
+                    if (e.touches.length > 0) {
+                        var touch = e.touches[0];
+                        // Get position relative to the canvas
+                        var rect = canvas.getBoundingClientRect();
+                        var x = touch.clientX - rect.left;
+                        var y = touch.clientY - rect.top;
+                        socket.emit("input mouse", [x, y]);
+                    }
+                    e.preventDefault();
+                },
+                { passive: false }
+            );
+
+            // Optionally, also send on touchstart for instant reaction
+            canvas.addEventListener(
+                "touchstart",
+                function (e) {
+                    if (e.touches.length > 0) {
+                        var touch = e.touches[0];
+                        var rect = canvas.getBoundingClientRect();
+                        var x = touch.clientX - rect.left;
+                        var y = touch.clientY - rect.top;
+                        socket.emit("input mouse", [x, y]);
+                    }
+                    e.preventDefault();
+                },
+                { passive: false }
+            );
 
             function drawNode(node) {
                 var r = node.size;
@@ -445,7 +480,7 @@
                 var p = 10;
                 var lineHeight = 22; // hauteur d'une ligne joueur
                 var headerHeight = 32; // hauteur du titre
-                var totalHeight = headerHeight + leaders.length * lineHeight + 16; // 16 pour un peu de marge
+                var totalHeight = headerHeight + leaders.length * lineHeight; // 16 pour un peu de marge
 
                 ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
                 ctx.fillRect(width - w - p, p, w, totalHeight);
@@ -455,7 +490,7 @@
                 ctx.textAlign = "center";
 
                 ctx.font = "24px Arial";
-                ctx.fillText("Classement", width - w / 2 - p, p + 8);
+                ctx.fillText("Classement", width - w / 2 - p, p);
 
                 ctx.font = "17px Arial";
                 for (var i = 0; i < leaders.length; i++) {
@@ -470,6 +505,143 @@
                 ctx.fillStyle = "white";
                 ctx.textBaseline = "middle";
                 ctx.textAlign = "left";
+
+                // Draw minimap only for PC (not mobile)
+                if (window.innerWidth >= 800 && settings.minimap) {
+                    // Minimap size and position
+                    const mapW = 200;
+                    const mapH = 200;
+                    const margin = 20;
+                    const mapX = width - mapW - margin;
+                    const mapY = height - mapH - margin;
+
+                    // Draw minimap background
+                    ctx.save();
+                    ctx.globalAlpha = 0.6;
+                    ctx.fillStyle = "#222";
+                    ctx.fillRect(mapX, mapY, mapW, mapH);
+                    ctx.globalAlpha = 1.0;
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(mapX, mapY, mapW, mapH);
+
+                    // Draw minimap grid labels (A1, A2, ..., E5)
+                    const gridRows = 5;
+                    const gridCols = 5;
+                    const cellW = mapW / gridCols;
+                    const cellH = mapH / gridRows;
+                    ctx.save();
+                    ctx.font = "bold 13px Arial";
+                    ctx.fillStyle = "#fff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    for (let row = 0; row < gridRows; row++) {
+                        for (let col = 0; col < gridCols; col++) {
+                            // Label: A1, A2, ..., E5
+                            const label = String.fromCharCode(65 + col) + (row + 1);
+                            const x = mapX + cellW * (col + 0.5);
+                            const y = mapY + cellH * (row + 0.5);
+                            ctx.fillText(label, x, y);
+                        }
+                    }
+                    ctx.restore();
+
+                    // Draw all blobs as small dots
+                    for (var i = 0; i < blobs.length; i++) {
+                        var node = blobs[i];
+                        var miniX = mapX + (node.x / 10000) * mapW;
+                        var miniY = mapY + (node.y / 10000) * mapH;
+                        ctx.beginPath();
+                        let miniRadius = 2; // defaut
+
+                        if (node.nodeType === 0) {
+                            // et la taille du joueur est en fct de la taille de la cellule
+                            miniRadius = Math.max(2, Math.min(12, node.size * 0.012));
+                        } else if (node.nodeType === 2) {
+                            // la bouffe est plus petite
+                            miniRadius = 1.2;
+                        } else if (node.nodeType === 1) {
+                            // les virus sont plus gros
+                            miniRadius = 3;
+                        }
+
+                        ctx.arc(miniX, miniY, miniRadius, 0, 2 * Math.PI);
+                        ctx.fillStyle =
+                            node.nodeType === 0 || node.nodeType === 2
+                                ? `hsl(${node.hue},100%,60%)`
+                                : node.nodeType === 1
+                                ? // green
+                                  "hsl(120, 100%, 50%)"
+                                : "#fff";
+                        ctx.fill();
+                        ctx.closePath();
+
+                        if (node.nodeType === 0 && node.nick === nickInput.value) {
+                            ctx.beginPath();
+                            ctx.arc(miniX, miniY, miniRadius + 1.5, 0, 2 * Math.PI);
+                            ctx.strokeStyle = "#fff";
+                            ctx.lineWidth = 2.5;
+                            ctx.stroke();
+                            ctx.closePath();
+                        }
+                    }
+                    // Optionally, draw your own cells with a border
+                    // (if you have a way to know which blobs are yours)
+                    ctx.restore();
+                }
+
+                // --- Top left info (PC only) ---
+                if (window.innerWidth >= 800) {
+                    // FPS calculation
+                    if (!window._lastFpsTime) window._lastFpsTime = performance.now();
+                    if (!window._frameCount) window._frameCount = 0;
+                    window._frameCount++;
+                    let now = performance.now();
+                    if (!window._fps) window._fps = 0;
+                    if (now - window._lastFpsTime > 500) {
+                        window._fps = Math.round(
+                            (window._frameCount * 1000) / (now - window._lastFpsTime)
+                        );
+                        window._frameCount = 0;
+                        window._lastFpsTime = now;
+                    }
+
+                    // Players online (unique nicks with at least one cell)
+                    let playerSet = new Set();
+                    for (let i = 0; i < blobs.length; i++) {
+                        if (blobs[i].nodeType === 0) playerSet.add(blobs[i].nick);
+                    }
+                    let playersOnline = playerSet.size;
+
+                    let lines = [
+                        `FPS: ${window._fps}`,
+                        `Joueurs en ligne: ${playersOnline}`,
+                        "Serveur: Europe/Paris::" + window.location.hostname,
+                    ];
+
+                    ctx.save();
+                    ctx.font = "18px Arial";
+                    ctx.textAlign = "left";
+                    ctx.textBaseline = "top";
+
+                    ctx.globalAlpha = 0.85; // Opacité augmentée pour un fond plus sombre
+                    ctx.fillStyle = "#101018"; //
+                    ctx.fillRect(10, 10, 210, lines.length * 28);
+                    ctx.globalAlpha = 1.0;
+
+                    ctx.fillStyle = "#fff";
+
+                    ctx.save();
+                    ctx.font = "18px Arial";
+                    ctx.fillStyle = "#fff";
+                    ctx.textAlign = "left";
+                    ctx.textBaseline = "top";
+
+                    for (let i = 0; i < lines.length; i++) {
+                        ctx.fillText(lines[i], 16, 16 + i * 24);
+                    }
+                    ctx.restore();
+                }
 
                 requestAnimationFrame(draw);
             }
